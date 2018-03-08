@@ -111,7 +111,13 @@ module.exports = {
 
             // get the css and js files
             var files = {css:[],js:[]};
-            _.each(fs.readdirSync(buildPath), function(file){
+            var filesInDirectory = fs.readdirSync(buildPath).map((name) => ({
+              name,
+              time: fs.lstatSync(buildPath + '/' + name).mtime.getTime()
+            }));
+            filesInDirectory = filesInDirectory.sort((a, b) => a.time - b.time).map(file => file.name);
+
+            filesInDirectory.forEach(function(file){
                 if(/^[a-z0-9]{40}\.css$/.test(file))
                     files['css'].push(file);
                 if(/^[a-z0-9]{40}\.js$/.test(file))
