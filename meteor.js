@@ -159,40 +159,40 @@ module.exports = {
             css = css.join("\n        ");
             content = content.replace(/{{ *> *css *}}/, css);
 
-            // ADD the SCRIPT files
+            // ADD the meteor runtime CONFIG
             var scripts = [];
-            _.each(files['js'], function(jsFile) {
-                scripts.push('__meteor_runtime_config__' + "\n" +
-                    '        <script type="text/javascript" src="'+ jsFile +'"></script>'+ "\n");
-            })
-            scripts = scripts.join("\n        ");
-
-            // add the meteor runtime config
             settings = {
                 'meteorRelease': starJson.meteorRelease,
                 'ROOT_URL_PATH_PREFIX': '',
                 meteorEnv: { NODE_ENV: 'production' },
-                // 'DDP_DEFAULT_CONNECTION_URL': program.url || '', // will reload infinite if Meteor.disconnect is not called
-                // 'appId': process.env.APP_ID || null,
-                // 'autoupdateVersion': null, // "ecf7fcc2e3d4696ea099fdd287dfa56068a692ec"
-                // 'autoupdateVersionRefreshable': null, // "c5600e68d4f2f5b920340f777e3bfc4297127d6e"
-                // 'autoupdateVersionCordova': null
+                'DDP_DEFAULT_CONNECTION_URL': program.url || ''
             };
+
             // on url = "default", we dont set the ROOT_URL, so Meteor chooses the app serving url for its DDP connection
             if(program.url !== 'default')
                 settings.ROOT_URL = program.url || '';
 
-
             if(settingsJson.public)
                 settings.PUBLIC_SETTINGS = settingsJson.public;
 
-            scripts = scripts.replace('__meteor_runtime_config__', '<script type="text/javascript">__meteor_runtime_config__ = JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(settings))+'"));</script>');
-            
+            var config = '        <script type="text/javascript">__meteor_runtime_config__ = JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(settings))+'"));</script>';
+
+            if (content.search(/{{ *> *config *}}/) === -1)
+                scripts.push(config);
+            else
+                content = content.replace(/{{ *> *config *}}/, config);
+
+
+            // ADD the SCRIPT files
+            _.each(files['js'], function(jsFile) {
+                scripts.push('        <script type="text/javascript" src="'+ jsFile +'"></script>'+ "\n");
+            })
             // add Meteor.disconnect() when no server is given
             if(!program.url)
-                scripts += '        <script type="text/javascript">Meteor.disconnect();</script>';
+              scripts += '        <script type="text/javascript">Meteor.disconnect();</script>';
 
-            content = content.replace(/{{ *> *scripts *}}/, scripts);
+            content = content.replace(/{{ *> *scripts *}}/, scripts.join("\n        "));
+
 
             // write the index.html
             return fs.writeFileAsync(path.join(buildPath, 'index.html'), content);
